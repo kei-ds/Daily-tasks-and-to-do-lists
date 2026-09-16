@@ -1,0 +1,6 @@
+node_modules/
+release/
+
+# build/ 里既有源文件（installer.nsh）也有生成物，所以按文件排除而不是整个目录
+build/icon.ico
+build/cache/

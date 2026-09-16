@@ -1,0 +1,61 @@
+{
+  "name": "daily-widget",
+  "version": "1.0.0",
+  "description": "桌面常驻的每日事项 / 代办小组件",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "icon": "node scripts/make-icon.js",
+    "package": "node scripts/build.js --dir",
+    "installer": "node scripts/build.js --nsis",
+    "autostart": "node scripts/autostart-cli.js"
+  },
+  "build": {
+    "appId": "com.local.dailywidget",
+    "productName": "每日及代办",
+    "executableName": "DailyWidget",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "scripts/selftest.js",
+      "package.json"
+    ],
+    "asar": true,
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "每日及代办",
+      "include": "build/installer.nsh",
+      "artifactName": "每日及代办-安装程序-${version}.exe"
+    },
+    "afterPack": "./scripts/afterpack.js"
+  },
+  "devDependencies": {
+    "electron": "44.4.1",
+    "electron-builder": "26.0.12"
+  }
+}

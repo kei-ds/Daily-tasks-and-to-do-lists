@@ -1,0 +1,8 @@
+# 默认按文本处理，检出时用平台原生换行
+* text=auto
+
+# 但 shell 脚本必须是 LF，否则在 bash 下会因行尾的 \r 报错
+*.sh text eol=lf
+
+# NSIS 脚本带 UTF-8 BOM，且换行不敏感，保持原样最稳妥
+*.nsh -text

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self';">
+<title>每日及代办</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="root">
+  <header class="titlebar">
+    <span class="brand">每日及代办</span>
+    <div class="tools">
+      <label class="alpha" title="面板透明度">
+        <span>透明度</span>
+        <input id="alpha" type="range" min="10" max="100" step="1" value="82">
+      </label>
+      <button id="hide" class="icon-btn" title="隐藏到托盘">&#8211;</button>
+    </div>
+  </header>
+
+  <main class="cols">
+    <section class="panel">
+      <h2>每日事项<span class="hint">凌晨 4:00 重置</span></h2>
+      <ul class="list" id="list-daily"></ul>
+      <form class="add" data-list="daily">
+        <input type="text" placeholder="添加每日事项…" maxlength="200" autocomplete="off">
+        <button type="submit" title="添加">+</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>代办<span class="hint">完成后 10 分钟消失</span></h2>
+      <ul class="list" id="list-todo"></ul>
+      <form class="add" data-list="todo">
+        <input type="text" placeholder="添加代办…" maxlength="200" autocomplete="off">
+        <button type="submit" title="添加">+</button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<!-- 8 个缩放手柄：transparent 窗口没有原生缩放边框，靠这些 + 主进程轮询实现 -->
+<div class="rs rs-n"  data-dir="n"></div>
+<div class="rs rs-s"  data-dir="s"></div>
+<div class="rs rs-w"  data-dir="w"></div>
+<div class="rs rs-e"  data-dir="e"></div>
+<div class="rs rs-nw" data-dir="nw"></div>
+<div class="rs rs-ne" data-dir="ne"></div>
+<div class="rs rs-sw" data-dir="sw"></div>
+<div class="rs rs-se" data-dir="se"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
