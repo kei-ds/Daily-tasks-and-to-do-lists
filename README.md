@@ -2,6 +2,8 @@
 
 一个常驻桌面的待办小组件。无边框、始终置顶、可拖动缩放、面板半透明、可最小化到系统托盘。
 
+**下载安装**：[Releases 页面](https://github.com/kei-ds/Daily-tasks-and-to-do-lists/releases/latest) → 下载 `每日及代办-安装程序-1.0.0.exe` → 双击运行。目标机器不需要 Node.js。详见[安装](#安装)一节。
+
 ```
 ┌──────────────────────────────────────────────────┐
 │ 每日及代办                      透明度 ▬●───  ─  │
@@ -37,26 +39,45 @@
 **关机补算**
 程序没运行（关机、休眠）期间错过的重置点和过期点，下次启动会一次性补上。关机 5 天再开机和关机 1 天的效果一样。
 
-## 安装到其他电脑
+## 安装
 
-用 `npm run installer` 生成安装包：
+### 直接下载安装包
 
-```
-release\每日及代办-安装程序-1.0.0.exe
-```
+去 [Releases](https://github.com/kei-ds/Daily-tasks-and-to-do-lists/releases/latest) 页面下载 `每日及代办-安装程序-1.0.0.exe`，双击运行。
 
-拷到目标机器上双击即可。它是一个带界面的安装向导：
+目标机器**不需要** Node.js 或任何依赖，支持 Windows 10 / 11 x64。
+
+安装向导的流程：
 
 1. 选择「仅为当前用户安装」还是「为所有用户安装」
 2. 选择安装目录
 3. **选择是否开机自动启动**（默认勾选）
 4. 安装
 
-安装过程**不需要管理员权限**（选默认的当前用户安装时），装到 `%LOCALAPPDATA%\Programs\DailyWidget`。装完会创建开始菜单和桌面快捷方式，并在「应用和功能」里注册，可以从那里卸载。
+选默认的「仅为当前用户安装」时**不需要管理员权限**，装到 `%LOCALAPPDATA%\Programs\DailyWidget`。装完会创建开始菜单和桌面快捷方式，并在「设置 → 应用」里注册，可以从那里卸载。
 
 卸载时会一并清理启动文件夹里的自启动快捷方式和注册表记录。
 
-安装包约 105MB，只保留了中英文语言包。目标机器上不需要装 Node.js 或任何依赖。
+安装包约 105MB，只保留了中英文语言包。里面是完整的 Electron 运行时，所以体积下不去。
+
+> **关于 Windows SmartScreen**：安装包没有代码签名（签名证书要按年付费），首次运行 Windows 可能弹出「已保护你的电脑」。点「更多信息」→「仍要运行」即可。这是所有未签名程序的正常现象。
+
+### 从源码构建安装包
+
+需要 **Node.js 22.12 或以上**（Electron 44 的要求），以及能访问 npm registry 和 GitHub 的网络。
+
+```bash
+git clone https://github.com/kei-ds/Daily-tasks-and-to-do-lists.git
+cd Daily-tasks-and-to-do-lists
+npm install
+npm run installer
+```
+
+产物在 `release\每日及代办-安装程序-1.0.0.exe`。
+
+`npm install` 会下载 Electron 运行时（约 100MB）。国内网络如果卡住，项目里的 `.npmrc` 已经配好了 npmmirror 镜像兜底。若仍然失败，删掉 `%LOCALAPPDATA%\electron\Cache`（可能残留损坏的压缩包）再重试。
+
+只想本机跑起来调试的话，用 `npm start` 即可，不用打包。
 
 ## 使用
 
@@ -105,6 +126,16 @@ npm run icon         # 只重新生成 build\icon.ico
 > 本机自启动快捷方式指向 `release\win-unpacked\`，不是源码。只改 `src/` 或 `renderer/` 而不重新打包的话，开机拉起来的还是旧版本。
 
 打包走的是 `scripts/build.js` 而不是直接调 electron-builder，原因见下方「为什么需要自定义构建脚本」。
+
+### 为什么 `release/` 不在仓库里
+
+它被 `.gitignore` 排除了，这是有意的：
+
+- **它是构建产物不是源码**。里面 320MB 是 Electron 运行时（`electron.exe` 单文件 235MB、`dxcompiler.dll` 25MB……），加上 100MB 安装包，全都可以从源码一条命令重新生成。
+- **Git 存二进制的代价极高**。Git 对文本能做增量压缩，但对已经压缩过的 exe 几乎无效——每次重新打包都会完整存一份新的 100MB 副本，提交几次仓库就上 GB，克隆会慢到不可用。
+- **仓库和发布包是两套机制**。源码走 Git 仓库，二进制走 [Releases](https://github.com/kei-ds/Daily-tasks-and-to-do-lists/releases)，后者单独存储，不会拖慢克隆。
+
+所以你 clone 下来只有 25 个源码文件。要安装包就去 Releases 页下载，或者本地 `npm run installer` 自己构建。
 
 ## 目录结构
 
