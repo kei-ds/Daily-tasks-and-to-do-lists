@@ -24,6 +24,12 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
+// 自检会往清单里塞测试数据再删掉，绝不能跑在用户的真实数据上。
+// 走 --selftest 时强制把数据目录挪到临时目录，除非调用方已经自己指定了。
+if (SELFTEST && !process.argv.some(a => a.startsWith('--user-data-dir'))) {
+  app.setPath('userData', path.join(require('os').tmpdir(), 'daily-widget-selftest'));
+}
+
 const dataDir = app.getPath('userData');
 const dataFile = path.join(dataDir, 'data.json');
 const store = new Store(dataFile);

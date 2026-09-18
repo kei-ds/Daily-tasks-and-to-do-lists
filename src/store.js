@@ -52,6 +52,7 @@ class Store {
   constructor(filePath) {
     this.filePath = filePath;
     this.tmpPath = filePath + '.tmp';
+    this.bakPath = filePath + '.bak';
     this.data = defaultData();
     this._timer = null;
   }
@@ -62,11 +63,15 @@ class Store {
       this.data = normalize(JSON.parse(text));
     } catch (err) {
       if (err.code === 'ENOENT') {
+        if (fs.existsSync(this.bakPath)) {
+          console.error(`[store] ${this.filePath} 不存在，但备份还在: ${this.bakPath}`);
+        }
         this.data = defaultData();
       } else {
-        // JSON 损坏：留一份现场再重建，别让程序起不来
+        // JSON 损坏：留一份现场再重建，别让程序起不来。
+        // 注意用 .corrupt 而不是 .bak —— .bak 存的是上一个好版本，不能被毁掉。
         console.error('[store] 读取失败，备份并重建:', err.message);
-        try { fs.renameSync(this.filePath, this.filePath + '.bak'); } catch { /* 备份失败就算了 */ }
+        try { fs.renameSync(this.filePath, this.filePath + '.corrupt'); } catch { /* 备份失败就算了 */ }
         this.data = defaultData();
       }
     }
@@ -85,6 +90,13 @@ class Store {
     try {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
       fs.writeFileSync(this.tmpPath, JSON.stringify(this.data, null, 2), 'utf8');
+      // 覆盖前把上一版留一份。清单是用户一点点攒出来的，删了没法找回来；
+      // 有 .bak 的话至少误删 data.json、写坏文件这类事故还能手动捞。
+      try {
+        fs.copyFileSync(this.filePath, this.bakPath);
+      } catch {
+        // 首次写入时还没有旧文件，正常
+      }
       fs.renameSync(this.tmpPath, this.filePath);
     } catch (err) {
       console.error('[store] 写入失败:', err.message);

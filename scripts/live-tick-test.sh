@@ -5,10 +5,20 @@
 set -u
 cd "$(dirname "$0")/.."
 
+# 全程跑在沙箱数据目录里。这个脚本会构造假的清单数据，早期版本直接写进
+# %APPDATA%\daily-widget\data.json，会把用户攒的内容覆盖掉。
+EXE="release/win-unpacked/DailyWidget.exe"
+[ -f "$EXE" ] || { echo "找不到 $EXE，先跑 npm run package"; exit 1; }
+SANDBOX="${TMPDIR:-/tmp}/dw-tick-test"
+rm -rf "$SANDBOX" 2>/dev/null
+mkdir -p "$SANDBOX"
+DATA_FILE="$SANDBOX/data.json"
+
 LOGIC=src/logic.js
 ORIG=$(mktemp)
 cp "$LOGIC" "$ORIG"
-restore() { cp "$ORIG" "$LOGIC"; rm -f "$ORIG"; }
+taskkill //F //IM DailyWidget.exe >/dev/null 2>&1
+restore() { cp "$ORIG" "$LOGIC"; rm -f "$ORIG"; rm -rf "$SANDBOX" 2>/dev/null; }
 trap restore EXIT
 
 # 算一个 30~90 秒之后的分界点，用小数小时表示
@@ -24,14 +34,14 @@ sed -i "s/^const RESET_HOUR = .*/const RESET_HOUR = ${RESET_HOUR};/" "$LOGIC"
 echo "临时 RESET_HOUR=${RESET_HOUR}（分界点在约 $((WAIT_MS / 1000)) 秒后）"
 
 # 用临时的 RESET_HOUR 算出「当前逻辑日」当作 lastResetDay，这样启动时不该触发重置
-node -e '
+DW_TEST_DATA="$DATA_FILE" node -e '
   const fs = require("fs");
   const RESET_HOUR = Number(process.argv[1]);
   const now = Date.now();
   const pad = n => String(n).padStart(2, "0");
   const day = ts => { const d = new Date(ts - RESET_HOUR * 3600 * 1000);
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-  const f = process.env.APPDATA + "/daily-widget/data.json";
+  const f = process.env.DW_TEST_DATA;
   fs.writeFileSync(f, JSON.stringify({
     version: 1,
     window: { x: 490, y: 226, width: 460, height: 400, alpha: 0.82 },
@@ -49,16 +59,16 @@ node -e '
   console.log("已构造测试数据，启动时不应发生重置（lastResetDay 已是当前逻辑日）");
 ' "$RESET_HOUR"
 
-npx electron . >/dev/null 2>&1 &
+"release/win-unpacked/DailyWidget.exe" --user-data-dir="$SANDBOX" >/dev/null 2>&1 &
 APP_PID=$!
 sleep $((WAIT_MS / 1000 + 14))
 kill $APP_PID 2>/dev/null
-taskkill //F //IM electron.exe >/dev/null 2>&1
+taskkill //F //IM DailyWidget.exe >/dev/null 2>&1
 sleep 1
 
-node -e '
+DW_TEST_DATA="$DATA_FILE" node -e '
   const fs = require("fs");
-  const d = JSON.parse(fs.readFileSync(process.env.APPDATA + "/daily-widget/data.json", "utf8"));
+  const d = JSON.parse(fs.readFileSync(process.env.DW_TEST_DATA, "utf8"));
   let ok = true;
   const c = (n, v, extra) => { ok = ok && v; console.log((v ? "PASS" : "FAIL") + "  " + n + (extra ? "  — " + extra : "")); };
   c("运行中跨过重置点，每日事项被重置",

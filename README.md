@@ -118,9 +118,17 @@ node scripts/autostart-cli.js disable   # 禁用
 
 托盘右键菜单 →「打开数据文件夹」可以直接定位。
 
-存了事项列表、窗口位置尺寸、透明度、自启动开关。写入用「先写 `.tmp` 再改名」的原子方式，并且有 300ms 去抖。文件损坏时会自动备份成 `data.json.bak` 并重建，不会导致程序起不来。
+存了事项列表、窗口位置尺寸、透明度、自启动开关。
 
-想重置就直接删掉这个文件。
+写入用「先写 `.tmp` 再改名」的原子方式，并且有 300ms 去抖。每次覆盖前会把上一版留一份到 `data.json.bak`，所以万一 `data.json` 被误删或写坏，还能从 `.bak` 捞回来：
+
+```bash
+copy "%APPDATA%\daily-widget\data.json.bak" "%APPDATA%\daily-widget\data.json"
+```
+
+读取时如果 JSON 损坏，会把坏文件改名成 `data.json.corrupt` 再用默认值重建，不会导致程序起不来。注意是 `.corrupt` 不是 `.bak`——`.bak` 里存的是上一个好版本，不能被毁掉。
+
+想重置就直接删掉 `data.json` 和 `data.json.bak`。
 
 ## 开发
 
@@ -172,10 +180,17 @@ npm run icon         # 只重新生成 build\icon.ico
    ├─ make-icon.js     生成 build\icon.ico
    ├─ autostart-cli.js 命令行开关自启动
    ├─ selftest.js      自动化自检（见下）
+   ├─ win-style.js     读窗口的 WS_EX_TRANSPARENT 位，供锁测试用
    ├─ live-tick-test.sh      验证运行中的定时逻辑
    ├─ lock-test.sh           验证锁定与鼠标穿透
    └─ installer-pref-test.sh 验证安装器偏好到首次启动建快捷方式的链路
 ```
+
+> **测试脚本一律跑在沙箱里。** 它们会删数据文件、构造假的清单、改状态，所以全部用 Electron 的 `--user-data-dir` 把数据目录指到临时目录，绝不碰 `%APPDATA%\daily-widget\`。
+>
+> 早期版本的脚本是直接对着真实数据目录操作的，结果把用户攒的清单删光了。新增测试脚本时务必照抄这个做法。
+>
+> 另外注意：`--user-data-dir` 在**开发模式**（`npx electron .`）下不生效，必须用打包产物 `release\win-unpacked\DailyWidget.exe`，所以跑测试前先 `npm run package`。
 
 主进程是**唯一数据源**。所有增删改走 IPC → 主进程改内存 → 落盘 → 广播全量状态 → 渲染进程重绘。这样「4:00 重置」「10 分钟清扫」「用户手动勾选」三者之间不存在竞态。渲染进程里的每秒 tick 只负责刷新倒计时文本，不做删除决策。
 
