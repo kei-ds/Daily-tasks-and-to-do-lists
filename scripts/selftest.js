@@ -39,6 +39,7 @@ async function setCursor(x, y, screen) {
 }
 
 async function run({ win, store, app }) {
+  const { isClickThrough } = require('../src/window.js');
   const wc = win.webContents;
   const js = code => wc.executeJavaScript(code, true);
 
@@ -200,7 +201,66 @@ async function run({ win, store, app }) {
     typeof saved.window.width === 'number' && typeof saved.window.x === 'number',
     JSON.stringify(saved.window));
 
-  // ---- 8. 截图，供人工核对布局 ----
+  // ---- 8. 锁定与鼠标穿透 ----
+  // 先恢复成正常尺寸，最小尺寸下标题栏太挤，锁按钮的位置不好算
+  const lockBase = win.getBounds();
+  win.setBounds({ x: lockBase.x, y: lockBase.y, width: 520, height: 420 }, false);
+  await sleep(400);
+
+  const lockBtn0 = await js(`(() => {
+    const b = document.getElementById('lock');
+    return b ? b.getBoundingClientRect().toJSON() : null;
+  })()`);
+  check('锁定按钮存在', !!lockBtn0);
+
+  const afterLock = await js(`(async () => {
+    const s = await window.api.setLocked(true);
+    await new Promise(r => setTimeout(r, 60));
+    return {
+      locked: s.settings.locked,
+      bodyClass: document.body.classList.contains('locked'),
+      tipShown: getComputedStyle(document.getElementById('locked-tip')).display !== 'none',
+      rootEvents: getComputedStyle(document.getElementById('root')).pointerEvents,
+      lockEvents: getComputedStyle(document.getElementById('lock')).pointerEvents,
+      handleEvents: getComputedStyle(document.querySelector('.rs-n')).pointerEvents,
+    };
+  })()`);
+  check('锁定后进入锁定态并显示提示', afterLock.locked && afterLock.bodyClass && afterLock.tipShown,
+    JSON.stringify({ locked: afterLock.locked, class: afterLock.bodyClass, tip: afterLock.tipShown }));
+  check('锁定后内容区与缩放手柄不可点击，锁按钮仍可点',
+    afterLock.rootEvents === 'none' && afterLock.lockEvents === 'auto' && afterLock.handleEvents === 'none',
+    `root=${afterLock.rootEvents} lock=${afterLock.lockEvents} rs=${afterLock.handleEvents}`);
+
+  // 真实光标驱动：移到锁按钮上应短暂恢复可点击，移开后恢复穿透。
+  // 这块逻辑完全依赖系统把 mousemove 转发进来，合成事件测不出来。
+  const lockRect = await js(`document.getElementById('lock').getBoundingClientRect().toJSON()`);
+  const winBounds = win.getBounds();
+  const lockCenterX = winBounds.x + Math.round(lockRect.x + lockRect.width / 2);
+  const lockCenterY = winBounds.y + Math.round(lockRect.y + lockRect.height / 2);
+
+  await setCursor(lockCenterX, lockCenterY, s);
+  await sleep(400);
+  const overBtn = isClickThrough();
+  check('光标移到解锁按钮上时恢复可点击', overBtn === false, `clickThrough=${overBtn}`);
+
+  await setCursor(winBounds.x + Math.round(winBounds.width / 2), winBounds.y + Math.round(winBounds.height - 20), s);
+  await sleep(400);
+  const awayFromBtn = isClickThrough();
+  check('光标移开后恢复穿透', awayFromBtn === true, `clickThrough=${awayFromBtn}`);
+
+  // 锁定态的截图单独存一份，方便核对视觉
+  const lockedShot = await wc.capturePage();
+  fs.writeFileSync(path.join(os.tmpdir(), 'daily-widget-locked.png'), lockedShot.toPNG());
+
+  const afterUnlock = await js(`(async () => {
+    const s = await window.api.setLocked(false);
+    await new Promise(r => setTimeout(r, 60));
+    return { locked: s.settings.locked, bodyClass: document.body.classList.contains('locked') };
+  })()`);
+  check('解锁后回到可交互状态', afterUnlock.locked === false && afterUnlock.bodyClass === false);
+  check('解锁后穿透关闭', isClickThrough() === false, `clickThrough=${isClickThrough()}`);
+
+  // ---- 9. 截图，供人工核对布局 ----
   const shot = await wc.capturePage();
   const shotPath = path.join(os.tmpdir(), 'daily-widget-selftest.png');
   fs.writeFileSync(shotPath, shot.toPNG());

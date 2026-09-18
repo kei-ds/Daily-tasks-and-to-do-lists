@@ -6,7 +6,10 @@ const { app, ipcMain, powerMonitor } = require('electron');
 
 const logic = require('./logic.js');
 const { Store } = require('./store.js');
-const { createWindow, registerResizeIpc, getWindow, showWindow } = require('./window.js');
+const {
+  createWindow, registerResizeIpc, getWindow, showWindow,
+  setClickThrough, setLockHitRect, startLockPolling, stopLockPolling,
+} = require('./window.js');
 const { createTray, destroyTray } = require('./tray.js');
 const autostart = require('./autostart.js');
 
@@ -25,12 +28,14 @@ const dataDir = app.getPath('userData');
 const dataFile = path.join(dataDir, 'data.json');
 const store = new Store(dataFile);
 let quitting = false;
+let trayApi = null;
 
 function snapshot() {
   return {
     daily: store.data.daily,
     todo: store.data.todo,
     window: store.data.window,
+    settings: store.data.settings,
     ttl: logic.TTL,
   };
 }
@@ -109,6 +114,25 @@ function registerItemIpc() {
     const win = getWindow();
     if (win && !win.isDestroyed()) win.hide();
   });
+
+  ipcMain.handle('ui:setLocked', (_e, locked) => {
+    applyLock(!!locked);
+    return snapshot();
+  });
+
+  // 渲染进程上报锁按钮的位置，主进程靠它把这一小块从穿透区域里挖出来
+  ipcMain.on('ui:lockHitRect', (_e, rect) => setLockHitRect(rect));
+}
+
+/** 锁定：整窗鼠标穿透 + 位置固定，只有渲染层的锁按钮可点。 */
+function applyLock(locked) {
+  store.data.settings.locked = locked;
+  if (locked) startLockPolling();
+  else stopLockPolling();
+  setClickThrough(locked);
+  store.saveSoon();
+  broadcast();
+  if (trayApi) trayApi.refresh();
 }
 
 function quit() {
@@ -158,7 +182,11 @@ app.whenReady().then(async () => {
   }
   store.saveSoon();
 
-  createTray(store, { onQuit: quit, dataDir });
+  trayApi = createTray(store, { onQuit: quit, dataDir, onToggleLock: () => applyLock(!store.data.settings.locked) });
+
+  // 上次退出时是锁定状态的话，这里恢复。放在建托管之后，
+  // 因为 applyLock 要刷新托盘菜单。
+  if (store.data.settings.locked) applyLock(true);
 
   const win = getWindow();
   win.on('close', e => {

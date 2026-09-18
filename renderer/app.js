@@ -2,8 +2,9 @@
 
 const bridge = window.api;
 
-const state = { daily: [], todo: [], window: {}, ttl: 10 * 60 * 1000 };
+const state = { daily: [], todo: [], window: {}, settings: {}, ttl: 10 * 60 * 1000 };
 let editing = null;      // { list, id }
+let locked = false;
 
 const lists = {
   daily: document.getElementById('list-daily'),
@@ -123,6 +124,7 @@ function applyState(next) {
   state.daily = next.daily || [];
   state.todo = next.todo || [];
   state.window = next.window || state.window;
+  if (next.settings) state.settings = next.settings;
   if (typeof next.ttl === 'number') state.ttl = next.ttl;
 
   const pct = Math.round((state.window.alpha ?? 0.82) * 100);
@@ -130,8 +132,38 @@ function applyState(next) {
   if (document.activeElement !== slider) slider.value = String(pct);
   document.documentElement.style.setProperty('--panel-alpha', String(pct / 100));
 
+  if (locked !== !!state.settings.locked) {
+    locked = !!state.settings.locked;
+    syncLockUI();
+  }
+
   render();
 }
+
+/* ---------- 锁定 ---------- */
+
+const lockBtn = document.getElementById('lock');
+
+function reportLockRect() {
+  const r = lockBtn.getBoundingClientRect();
+  bridge.setLockHitRect({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+}
+
+function syncLockUI() {
+  document.body.classList.toggle('locked', locked);
+  lockBtn.title = locked
+    ? '解除锁定（也可以右键托盘图标）'
+    : '锁定：固定位置，鼠标可穿透到底下的窗口';
+
+  // 锁按钮的位置只有渲染进程知道（CSS 布局），上报给主进程，
+  // 它靠轮询光标来判断这一小块什么时候该恢复可点击。
+  // 锁定期间窗口尺寸不会变（缩放手柄已禁用），所以报一次就够。
+  if (locked) reportLockRect();
+}
+
+// 上锁后主进程开始轮询光标：光标停在按钮上就不穿透，移开就穿透。
+// 所以刚点完锁按钮的那一瞬间它仍然是可点的，想立刻解锁不用先晃鼠标。
+lockBtn.addEventListener('click', () => bridge.setLocked(!locked));
 
 /* ---------- 添加 ---------- */
 

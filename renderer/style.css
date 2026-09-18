@@ -80,6 +80,9 @@ button, input, select, textarea,
 }
 
 .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
   line-height: 1;
@@ -91,6 +94,53 @@ button, input, select, textarea,
   cursor: pointer;
 }
 .icon-btn:hover { background: rgba(255, 255, 255, 0.14); color: var(--fg); }
+
+/* 未锁定时锁扣是掀开的，锁定后合上 */
+.lock-shackle {
+  transform-origin: 8px 7px;
+  transform: translate(-1.5px, -0.5px) rotate(-24deg);
+  transition: transform 0.15s ease;
+}
+
+.locked-tip {
+  display: none;
+  margin-left: 8px;
+  font-size: 10px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 锁定态：整窗鼠标穿透（由主进程 setIgnoreMouseEvents 实现），
+ * 这里再把 pointer-events 收窄，保证即使窗口短暂恢复可交互
+ * （光标悬停在锁按钮上时）也不会误触到别的地方。
+ */
+body.locked .locked-tip { display: inline; }
+body.locked #lock { pointer-events: auto; }
+body.locked #lock .lock-shackle { transform: none; }
+body.locked #lock {
+  border-color: var(--accent);
+  background: rgba(91, 157, 255, 0.22);
+  color: var(--accent);
+}
+
+body.locked #root { pointer-events: none; }
+body.locked .rs { pointer-events: none; }
+
+/* 锁定后拖拽区域全部失效，位置固定 */
+body.locked,
+body.locked #root,
+body.locked .titlebar,
+body.locked .panel,
+body.locked .add,
+body.locked .list {
+  -webkit-app-region: no-drag;
+}
+
+/* 锁定后描一圈边，方便看清窗口的实际范围 */
+body.locked .panel { border-color: rgba(91, 157, 255, 0.45); }
 
 /* ---------- 两栏 ---------- */
 

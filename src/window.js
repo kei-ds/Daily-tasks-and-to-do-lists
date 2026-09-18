@@ -14,6 +14,55 @@ const RESIZE_IDLE_MS = 1500;
 let win = null;
 let saveTimer = null;
 let session = null;
+let clickThrough = false;
+// 锁定后整窗鼠标穿透，但解锁按钮那一小块得保持可点。
+// 靠主进程轮询光标位置来判断（和缩放手柄同一套做法）。
+const LOCK_POLL_MS = 50;
+const LOCK_PAD = 3; // 外扩几像素，按钮本身才 22px，不扩很难点中
+let lockTimer = null;
+let lockHitRect = null; // 锁按钮相对窗口内容区的位置，由渲染进程上报
+
+function setClickThrough(enabled) {
+  if (!win || win.isDestroyed()) return;
+  const next = !!enabled;
+  if (next === clickThrough) return;
+  clickThrough = next;
+  // 这里不能用 forward: true —— 实测在 transparent 窗口上 Electron 并不会
+  // 把 mousemove 转发给渲染进程（事件计数始终为 0），所以只能自己轮询。
+  win.setIgnoreMouseEvents(clickThrough);
+}
+
+function isClickThrough() {
+  return clickThrough;
+}
+
+/** 渲染进程上报锁按钮的位置，坐标是相对窗口内容区的 CSS 像素。 */
+function setLockHitRect(rect) {
+  lockHitRect = rect && typeof rect.left === 'number' ? rect : null;
+}
+
+function startLockPolling() {
+  if (lockTimer) return;
+  lockTimer = setInterval(() => {
+    if (!win || win.isDestroyed() || !lockHitRect) return;
+    const b = win.getBounds();
+    const p = screen.getCursorScreenPoint();
+    // 无边框窗口的内容区原点就是窗口原点，两边都是 DIP，直接减即可
+    const x = p.x - b.x;
+    const y = p.y - b.y;
+    const r = lockHitRect;
+    const over = x >= r.left - LOCK_PAD && x <= r.right + LOCK_PAD
+              && y >= r.top - LOCK_PAD && y <= r.bottom + LOCK_PAD;
+    setClickThrough(!over);
+  }, LOCK_POLL_MS);
+}
+
+function stopLockPolling() {
+  if (lockTimer) {
+    clearInterval(lockTimer);
+    lockTimer = null;
+  }
+}
 
 /**
  * 恢复上次的位置和尺寸。若窗口已经完全落在所有显示器之外
@@ -153,7 +202,7 @@ function createWindow(store) {
   win.on('blur', () => endResize(store));
   win.on('hide', () => endResize(store));
 
-  win.on('closed', () => { win = null; });
+  win.on('closed', () => { win = null; clickThrough = false; });
 
   return win;
 }
@@ -175,4 +224,7 @@ function toggleWindow() {
   else showWindow();
 }
 
-module.exports = { createWindow, registerResizeIpc, getWindow, showWindow, toggleWindow };
+module.exports = {
+  createWindow, registerResizeIpc, getWindow, showWindow, toggleWindow,
+  setClickThrough, isClickThrough, setLockHitRect, startLockPolling, stopLockPolling,
+};

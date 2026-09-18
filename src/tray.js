@@ -14,7 +14,7 @@ function buildIcon() {
   return img;
 }
 
-function createTray(store, { onQuit, dataDir }) {
+function createTray(store, { onQuit, dataDir, onToggleLock }) {
   tray = new Tray(buildIcon());
   tray.setToolTip('每日及代办');
   tray.on('click', () => toggleWindow());
@@ -22,8 +22,15 @@ function createTray(store, { onQuit, dataDir }) {
   const refresh = () => {
     const win = getWindow();
     const shown = !!win && !win.isDestroyed() && win.isVisible() && !win.isMinimized();
+    const locked = !!store.data.settings.locked;
     tray.setContextMenu(Menu.buildFromTemplate([
       { label: shown ? '隐藏' : '显示', click: () => toggleWindow() },
+      {
+        label: '锁定（鼠标可穿透到下层窗口）',
+        type: 'checkbox',
+        checked: locked,
+        click: () => onToggleLock(),
+      },
       { type: 'separator' },
       {
         label: '开机自启动',

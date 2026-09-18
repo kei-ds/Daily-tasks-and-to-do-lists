@@ -11,11 +11,19 @@
 <div id="root">
   <header class="titlebar">
     <span class="brand">每日及代办</span>
+    <span id="locked-tip" class="locked-tip" title="锁定后鼠标可以点到底下的窗口，只有这个锁按钮能点">已锁定 · 点右边锁图标解除</span>
     <div class="tools">
       <label class="alpha" title="面板透明度">
         <span>透明度</span>
         <input id="alpha" type="range" min="10" max="100" step="1" value="82">
       </label>
+      <button id="lock" class="icon-btn" title="锁定：固定位置，鼠标可穿透到底下的窗口">
+        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+          <path class="lock-shackle" d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"
+                fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <rect x="3.6" y="7" width="8.8" height="6.4" rx="1.6" fill="currentColor"/>
+        </svg>
+      </button>
       <button id="hide" class="icon-btn" title="隐藏到托盘">&#8211;</button>
     </div>
   </header>

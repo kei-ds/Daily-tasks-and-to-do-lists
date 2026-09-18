@@ -9,7 +9,7 @@ function defaultData() {
   return {
     version: 1,
     window: { x: null, y: null, width: 460, height: 400, alpha: 0.82 },
-    settings: { autostart: false },
+    settings: { autostart: false, locked: false },
     lastResetDay: null,
     daily: [],
     todo: [],
@@ -28,6 +28,7 @@ function normalize(raw) {
   }
   if (raw.settings && typeof raw.settings === 'object') {
     if (typeof raw.settings.autostart === 'boolean') d.settings.autostart = raw.settings.autostart;
+    if (typeof raw.settings.locked === 'boolean') d.settings.locked = raw.settings.locked;
   }
   if (typeof raw.lastResetDay === 'string') d.lastResetDay = raw.lastResetDay;
 

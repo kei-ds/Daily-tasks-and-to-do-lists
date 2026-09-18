@@ -22,4 +22,9 @@ contextBridge.exposeInMainWorld('api', {
   resizeStart: dir => ipcRenderer.send('resize:start', dir),
   resizeEnd: () => ipcRenderer.send('resize:end'),
   hide: () => ipcRenderer.send('ui:hide'),
+
+  // 锁定：整窗鼠标穿透，只留锁按钮可点。
+  // 锁按钮的位置要上报给主进程，它靠轮询光标来判断是否该临时恢复可点击。
+  setLocked: locked => ipcRenderer.invoke('ui:setLocked', locked),
+  setLockHitRect: rect => ipcRenderer.send('ui:lockHitRect', rect),
 });
