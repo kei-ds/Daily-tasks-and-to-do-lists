@@ -2,7 +2,7 @@
 
 一个常驻桌面的待办小组件。无边框、始终置顶、可拖动缩放、面板半透明、可最小化到系统托盘。
 
-**下载安装**：[Releases 页面](https://github.com/kei-ds/Daily-tasks-and-to-do-lists/releases/latest) → 下载 `DailyWidget-Setup-1.0.0.exe` → 双击运行。目标机器不需要 Node.js。详见[安装](#安装)一节。
+**下载安装**：[Releases 页面](https://github.com/kei-ds/Daily-tasks-and-to-do-lists/releases/latest) → 下载 `DailyWidget-Setup-1.1.0.exe` → 双击运行。目标机器不需要 Node.js。详见[安装](#安装)一节。
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -51,9 +51,9 @@
 
 ### 直接下载安装包
 
-去 [Releases](https://github.com/kei-ds/Daily-tasks-and-to-do-lists/releases/latest) 页面下载 `DailyWidget-Setup-1.0.0.exe`，双击运行。
+去 [Releases](https://github.com/kei-ds/Daily-tasks-and-to-do-lists/releases/latest) 页面下载 `DailyWidget-Setup-1.1.0.exe`，双击运行。
 
-> 从源码 `npm run installer` 构建出来的文件叫 `每日及代办-安装程序-1.0.0.exe`，内容和 Release 里那个完全一样，只是文件名不同——发布到 Release 时特意用了 ASCII 名，因为 GitHub 会把附件名里的中文剥掉，而且部分浏览器下载中文文件名会乱码。
+> 从源码 `npm run installer` 构建出来的文件叫 `每日及代办-安装程序-1.1.0.exe`，内容和 Release 里那个完全一样，只是文件名不同——发布到 Release 时特意用了 ASCII 名，因为 GitHub 会把附件名里的中文剥掉，而且部分浏览器下载中文文件名会乱码。
 
 目标机器**不需要** Node.js 或任何依赖，支持 Windows 10 / 11 x64。
 
@@ -83,7 +83,7 @@ npm install
 npm run installer
 ```
 
-产物在 `release\每日及代办-安装程序-1.0.0.exe`。
+产物在 `release\每日及代办-安装程序-1.1.0.exe`。
 
 `npm install` 会下载 Electron 运行时（约 100MB）。国内网络如果卡住，项目里的 `.npmrc` 已经配好了 npmmirror 镜像兜底。若仍然失败，删掉 `%LOCALAPPDATA%\electron\Cache`（可能残留损坏的压缩包）再重试。
 
@@ -136,7 +136,7 @@ copy "%APPDATA%\daily-widget\data.json.bak" "%APPDATA%\daily-widget\data.json"
 npm install          # 首次
 npm start            # 开发模式运行
 npm run package      # 打包成 release\win-unpacked\DailyWidget.exe（本机自启动就指向它）
-npm run installer    # 生成安装包 release\每日及代办-安装程序-1.0.0.exe（分发用）
+npm run installer    # 生成安装包 release\每日及代办-安装程序-1.1.0.exe（分发用）
 npm run icon         # 只重新生成 build\icon.ico
 ```
 
