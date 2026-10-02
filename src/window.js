@@ -178,7 +178,9 @@ function createWindow(store) {
     maximizable: false,
     fullscreenable: false,
     hasShadow: false,
-    skipTaskbar: false,
+    // 不在任务栏出现，只留右下角的托盘图标。
+    // 隐藏/唤回一律走托盘：点托盘图标或右键菜单里的「显示/隐藏」。
+    skipTaskbar: true,
     alwaysOnTop: true,
     show: false,
     title: '每日及代办',
@@ -194,7 +196,9 @@ function createWindow(store) {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 
-  win.once('ready-to-show', () => win.show());
+  win.once('ready-to-show', () => {
+    win.show();
+  });
   win.on('resize', () => scheduleSaveBounds(store));
   win.on('move', () => scheduleSaveBounds(store));
 

@@ -30,6 +30,7 @@
 
 **窗口**
 - 无边框、始终置顶，不会压住其它程序的对话框
+- **不在任务栏出现**，只在右下角托盘留一个图标
 - 拖动标题栏或面板空白处移动窗口
 - 拖 8 个边角调整大小（窗口没有原生缩放边框，见下方「设计取舍」）
 - 右上角滑块调整面板透明度（10%–100%），文字始终清晰
@@ -180,7 +181,8 @@ npm run icon         # 只重新生成 build\icon.ico
    ├─ make-icon.js     生成 build\icon.ico
    ├─ autostart-cli.js 命令行开关自启动
    ├─ selftest.js      自动化自检（见下）
-   ├─ win-style.js     读窗口的 WS_EX_TRANSPARENT 位，供锁测试用
+   ├─ win-style.js     读窗口的系统状态位，供锁测试用
+   ├─ taskbar-buttons.js 枚举任务栏按钮，用来确认程序有没有从任务栏消失
    ├─ live-tick-test.sh      验证运行中的定时逻辑
    ├─ lock-test.sh           验证锁定与鼠标穿透
    └─ installer-pref-test.sh 验证安装器偏好到首次启动建快捷方式的链路
@@ -296,6 +298,23 @@ Electron 文档说 `setIgnoreMouseEvents(true, { forward: true })` 会把 mousem
 这和缩放手柄用的是同一套做法，在本项目里已经验证可靠。
 
 代价是锁定期间多一个 50ms 的定时器（一次 Win32 `GetCursorPos`），可以忽略。
+
+### 不在任务栏出现：验证方法比代码本身麻烦
+
+构造窗口时加 `skipTaskbar: true` 就够了，一个选项的事。麻烦的是**怎么验证它真的生效**——踩了两个坑：
+
+1. **读 `WS_EX_TOOLWINDOW` 位是错的。** Electron 的 `skipTaskbar` 走的是任务栏 COM 接口
+   `ITaskbarList::DeleteTab`，只是把任务栏按钮删掉，根本不会改窗口的扩展样式。我一开始
+   按这个位去判断，得到「没生效」的错误结论，还照着错误结论加了两处多余的 `setSkipTaskbar` 调用。
+2. **截图也不可靠。** 任务栏可能是自动隐藏的，截屏根本拍不到；而且 GDI 截屏抓不到
+   `transparent` 的分层窗口，连窗口本身都拍不出来。
+
+最后用 UI Automation 枚举任务栏上的按钮才得到可信结论（`scripts/taskbar-buttons.js`）。
+开和关各测一次，按钮数 16 → 15，消失的正好是「每日及代办 - 1 个运行窗口」，
+而托盘的「每日及代办」还在。
+
+教训：判断系统级行为时，先确认「观察方法本身是对的」。错误的观察方法比不观察更糟，
+因为它会导出看起来有依据的错误结论。
 
 ### 必须有一层近乎不可见的底色
 
