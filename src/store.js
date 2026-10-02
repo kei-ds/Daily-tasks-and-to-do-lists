@@ -5,11 +5,15 @@ const path = require('path');
 
 const SAVE_DEBOUNCE = 300;
 
+// 字号范围。渲染层的滑块 min/max 要和这里一致。
+const MIN_FONT = 11;
+const MAX_FONT = 20;
+
 function defaultData() {
   return {
     version: 1,
     window: { x: null, y: null, width: 460, height: 400, alpha: 0.82 },
-    settings: { autostart: false, locked: false },
+    settings: { autostart: false, locked: false, fontSize: 13 },
     lastResetDay: null,
     daily: [],
     todo: [],
@@ -29,6 +33,9 @@ function normalize(raw) {
   if (raw.settings && typeof raw.settings === 'object') {
     if (typeof raw.settings.autostart === 'boolean') d.settings.autostart = raw.settings.autostart;
     if (typeof raw.settings.locked === 'boolean') d.settings.locked = raw.settings.locked;
+    if (Number.isFinite(raw.settings.fontSize)) {
+      d.settings.fontSize = Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(raw.settings.fontSize)));
+    }
   }
   if (typeof raw.lastResetDay === 'string') d.lastResetDay = raw.lastResetDay;
 
@@ -104,4 +111,4 @@ class Store {
   }
 }
 
-module.exports = { Store, defaultData, normalize };
+module.exports = { Store, defaultData, normalize, MIN_FONT, MAX_FONT };

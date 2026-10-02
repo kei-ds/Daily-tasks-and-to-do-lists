@@ -5,7 +5,7 @@ const path = require('path');
 const { app, ipcMain, powerMonitor } = require('electron');
 
 const logic = require('./logic.js');
-const { Store } = require('./store.js');
+const { Store, MIN_FONT, MAX_FONT } = require('./store.js');
 const {
   createWindow, registerResizeIpc, getWindow, showWindow,
   setClickThrough, setLockHitRect, startLockPolling, stopLockPolling,
@@ -113,12 +113,23 @@ function registerItemIpc() {
     if (!Number.isFinite(n)) return snapshot();
     store.data.window.alpha = Math.min(MAX_ALPHA, Math.max(MIN_ALPHA, n));
     store.saveSoon();
+    broadcast();
     return snapshot();
   });
 
   ipcMain.on('ui:hide', () => {
     const win = getWindow();
     if (win && !win.isDestroyed()) win.hide();
+  });
+
+  ipcMain.handle('ui:setFontSize', (_e, size) => {
+    const n = Number(size);
+    if (Number.isFinite(n)) {
+      store.data.settings.fontSize = Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(n)));
+      store.saveSoon();
+      broadcast();
+    }
+    return snapshot();
   });
 
   ipcMain.handle('ui:setLocked', (_e, locked) => {

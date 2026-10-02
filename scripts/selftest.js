@@ -260,7 +260,57 @@ async function run({ win, store, app }) {
   check('解锁后回到可交互状态', afterUnlock.locked === false && afterUnlock.bodyClass === false);
   check('解锁后穿透关闭', isClickThrough() === false, `clickThrough=${isClickThrough()}`);
 
-  // ---- 9. 截图，供人工核对布局 ----
+  // ---- 9. 字体大小 ----
+  const fontProbe = await js(`(async () => {
+    const before = getComputedStyle(document.body).fontSize;
+    await window.api.setFontSize(20);
+    await new Promise(r => setTimeout(r, 80));
+    const body = getComputedStyle(document.body).fontSize;
+    // 只改 body 是不够的，标题、提示这些相对字号也得跟着放大
+    const hint = getComputedStyle(document.querySelector('.hint')).fontSize;
+    const title = getComputedStyle(document.querySelector('.panel h2')).fontSize;
+    await window.api.setFontSize(11);
+    await new Promise(r => setTimeout(r, 80));
+    const small = getComputedStyle(document.body).fontSize;
+    await window.api.setFontSize(13);
+    await new Promise(r => setTimeout(r, 80));
+    return { before, body, hint, title, small };
+  })()`);
+  check('字号滑块能改变整体字号',
+    fontProbe.before === '13px' && fontProbe.body === '20px' && fontProbe.small === '11px',
+    `${fontProbe.before} -> ${fontProbe.body} -> ${fontProbe.small}`);
+  // h2 是 0.962em、hint 又是 h2 的 0.8em，所以基准 20px 时分别应该是 19.24 / 15.392
+  const near = (got, want) => Math.abs(parseFloat(got) - want) < 0.05;
+  check('相对字号跟着一起缩放（标题、提示）',
+    near(fontProbe.title, 20 * 0.962) && near(fontProbe.hint, 20 * 0.962 * 0.8),
+    `h2=${fontProbe.title}（期望 ${(20 * 0.962).toFixed(3)}）hint=${fontProbe.hint}（期望 ${(20 * 0.962 * 0.8).toFixed(3)}）`);
+
+  // 越界的值要被夹到范围内，不能落盘
+  const clamped = await js(`(async () => {
+    const a = await window.api.setFontSize(999);
+    const b = await window.api.setFontSize(-5);
+    await window.api.setFontSize(13);
+    return { hi: a.settings.fontSize, lo: b.settings.fontSize };
+  })()`);
+  check('字号越界会被夹到 11–20', clamped.hi === 20 && clamped.lo === 11,
+    `999 -> ${clamped.hi}，-5 -> ${clamped.lo}`);
+
+  check('字号已落盘', store.data.settings.fontSize === 13, `fontSize=${store.data.settings.fontSize}`);
+
+  // 窗口拉窄时标签要藏起来，否则两个滑块会把标题栏挤爆
+  const narrow = await js(`(() => {
+    const label = document.querySelector('.ctl > span');
+    return { wide: getComputedStyle(label).display };
+  })()`);
+  win.setBounds({ ...win.getBounds(), width: 300 }, false);
+  await sleep(400);
+  const atNarrow = await js(`getComputedStyle(document.querySelector('.ctl > span')).display`);
+  win.setBounds({ ...win.getBounds(), width: 520 }, false);
+  await sleep(400);
+  check('窗口收窄时滑块标签自动隐藏', narrow.wide !== 'none' && atNarrow === 'none',
+    `520px=${narrow.wide} 300px=${atNarrow}`);
+
+  // ---- 10. 截图，供人工核对布局 ----
   const shot = await wc.capturePage();
   const shotPath = path.join(os.tmpdir(), 'daily-widget-selftest.png');
   fs.writeFileSync(shotPath, shot.toPNG());

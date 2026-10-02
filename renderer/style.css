@@ -5,6 +5,7 @@
   --dim: #8b96ab;
   --line: rgba(255, 255, 255, 0.09);
   --accent: #5b9dff;
+  --font-size: 13px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,7 +15,7 @@ html, body {
   overflow: hidden;
   background: transparent;
   font-family: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
-  font-size: 13px;
+  font-size: var(--font-size);
   color: var(--fg);
   user-select: none;
   cursor: default;
@@ -60,23 +61,32 @@ button, input, select, textarea,
   -webkit-app-region: drag;
 }
 
-.brand { font-size: 12px; letter-spacing: 1px; color: var(--dim); }
+.brand { font-size: 0.923em; letter-spacing: 1px; color: var(--dim); }
 
 .tools { display: flex; align-items: center; gap: 8px; }
 
-.alpha {
+.ctl {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 0.846em;
   color: var(--dim);
 }
 
-.alpha input[type="range"] {
+.ctl input[type="range"] {
   width: 68px;
   height: 14px;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+/*
+ * 窗口拉窄时藏掉「透明度 / 字号」这些文字标签，只留滑块本身，
+ * 否则两个控件会把标题栏挤爆（最小宽度只有 240px）。
+ */
+@media (max-width: 470px) {
+  .ctl > span { display: none; }
+  .ctl input[type="range"] { width: 50px; }
 }
 
 .icon-btn {
@@ -90,7 +100,7 @@ button, input, select, textarea,
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.05);
   color: var(--dim);
-  font-size: 13px;
+  font-size: 1em;
   cursor: pointer;
 }
 .icon-btn:hover { background: rgba(255, 255, 255, 0.14); color: var(--fg); }
@@ -105,7 +115,7 @@ button, input, select, textarea,
 .locked-tip {
   display: none;
   margin-left: 8px;
-  font-size: 10px;
+  font-size: 0.769em;
   color: var(--accent);
   white-space: nowrap;
   overflow: hidden;
@@ -170,12 +180,12 @@ body.locked .panel { border-color: rgba(91, 157, 255, 0.45); }
   align-items: baseline;
   gap: 6px;
   padding: 7px 9px;
-  font-size: 12.5px;
+  font-size: 0.962em;
   font-weight: 600;
   border-bottom: 1px solid var(--line);
 }
 
-.hint { font-size: 10px; font-weight: 400; color: var(--dim); }
+.hint { font-size: 0.8em; font-weight: 400; color: var(--dim); }
 
 .list {
   flex: 1 1 auto;
@@ -225,7 +235,7 @@ body.locked .panel { border-color: rgba(91, 157, 255, 0.45); }
 
 .item .countdown {
   flex: 0 0 auto;
-  font-size: 10px;
+  font-size: 0.769em;
   color: var(--dim);
   font-variant-numeric: tabular-nums;
   margin-top: 2px;
@@ -239,7 +249,7 @@ body.locked .panel { border-color: rgba(91, 157, 255, 0.45); }
   border-radius: 4px;
   background: transparent;
   color: var(--dim);
-  font-size: 13px;
+  font-size: 1em;
   line-height: 1;
   cursor: pointer;
   opacity: 0;
@@ -262,7 +272,7 @@ body.locked .panel { border-color: rgba(91, 157, 255, 0.45); }
 .empty {
   padding: 10px 9px;
   color: var(--dim);
-  font-size: 11px;
+  font-size: 0.846em;
 }
 
 /* ---------- 添加行 ---------- */
@@ -297,7 +307,7 @@ body.locked .panel { border-color: rgba(91, 157, 255, 0.45); }
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--fg);
-  font-size: 15px;
+  font-size: 1.154em;
   line-height: 1;
   cursor: pointer;
 }

@@ -127,10 +127,17 @@ function applyState(next) {
   if (next.settings) state.settings = next.settings;
   if (typeof next.ttl === 'number') state.ttl = next.ttl;
 
-  const pct = Math.round((state.window.alpha ?? 0.82) * 100);
-  const slider = document.getElementById('alpha');
-  if (document.activeElement !== slider) slider.value = String(pct);
-  document.documentElement.style.setProperty('--panel-alpha', String(pct / 100));
+  if (draggingSlider !== alphaSlider) {
+    const pct = Math.round((state.window.alpha ?? 0.82) * 100);
+    alphaSlider.value = String(pct);
+    document.documentElement.style.setProperty('--panel-alpha', String(pct / 100));
+  }
+
+  if (draggingSlider !== fontSlider) {
+    const fs = state.settings.fontSize ?? 13;
+    fontSlider.value = String(fs);
+    document.documentElement.style.setProperty('--font-size', `${fs}px`);
+  }
 
   if (locked !== !!state.settings.locked) {
     locked = !!state.settings.locked;
@@ -179,18 +186,34 @@ for (const form of document.querySelectorAll('.add')) {
   });
 }
 
-/* ---------- 透明度 ---------- */
+/* ---------- 标题栏滑块（透明度 / 字号） ---------- */
 
-{
-  const slider = document.getElementById('alpha');
+// 正在拖的滑块。拖动期间主进程的广播不能回流覆盖它的值——
+// 比如字号码在拖的时候正好有条代办到期消失，广播会把字号弹回旧值。
+let draggingSlider = null;
+
+/** 拖动时立刻改样式（手感跟手），停下来 250ms 后才落盘。 */
+function wireSlider(id, apply, persist) {
+  const slider = document.getElementById(id);
   let timer = null;
   slider.addEventListener('input', () => {
-    const alpha = Number(slider.value) / 100;
-    document.documentElement.style.setProperty('--panel-alpha', String(alpha));
+    const v = Number(slider.value);
+    apply(v);
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => bridge.setAlpha(alpha), 250);
+    timer = setTimeout(() => persist(v), 250);
   });
+  slider.addEventListener('pointerdown', () => { draggingSlider = slider; });
+  window.addEventListener('pointerup', () => { draggingSlider = null; });
+  return slider;
 }
+
+const alphaSlider = wireSlider('alpha',
+  v => document.documentElement.style.setProperty('--panel-alpha', String(v / 100)),
+  v => bridge.setAlpha(v / 100));
+
+const fontSlider = wireSlider('font',
+  v => document.documentElement.style.setProperty('--font-size', `${v}px`),
+  v => bridge.setFontSize(v));
 
 document.getElementById('hide').addEventListener('click', () => bridge.hide());
 

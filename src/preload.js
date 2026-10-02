@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // 窗口
   setAlpha: alpha => ipcRenderer.invoke('ui:setAlpha', alpha),
+  setFontSize: size => ipcRenderer.invoke('ui:setFontSize', size),
   resizeStart: dir => ipcRenderer.send('resize:start', dir),
   resizeEnd: () => ipcRenderer.send('resize:end'),
   hide: () => ipcRenderer.send('ui:hide'),
